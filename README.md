@@ -2,6 +2,37 @@
 
 This repository contains the configuration and setup for Apache Superset, a modern data exploration and visualization platform.
 
+## Understanding Superset's Two Databases
+
+Superset uses two different types of databases:
+
+1. **Metadata Database**
+   - Purpose: Stores Superset's internal metadata
+   - Content:
+     - User information and permissions
+     - Dashboard configurations
+     - Saved queries
+     - Chart definitions
+     - Database connections
+     - Cache keys
+   - Default: SQLite (`superset.db` in project root)
+   - Configuration: Set via `SQLALCHEMY_DATABASE_URI` in `superset_config.py`
+   - Note: For production, recommended to use PostgreSQL or MySQL
+
+2. **Data Source Databases**
+   - Purpose: Store actual data for visualization
+   - Types supported:
+     - PostgreSQL
+     - MySQL
+     - SQLite
+     - Oracle
+     - Microsoft SQL Server
+     - Apache Druid
+     - And many more
+   - Configuration: Added through Superset's UI (Data → Databases)
+   - Connection: Uses SQLAlchemy URI format
+   - Security: Credentials encrypted in metadata DB
+
 ## Prerequisites
 
 - Python 3.10 or higher
@@ -136,6 +167,9 @@ superset run -h 0.0.0.0 -p 8088 --with-threads --reload --debugger
 1. Database connection issues:
    - Verify database URI in config
    - Check database permissions
+   - For metadata DB encryption issues:
+     - Ensure `SUPERSET_SECRET_KEY` is consistent
+     - May need to reset the database if key changes
 
 2. Cache issues:
    - Ensure cache directories are writable
