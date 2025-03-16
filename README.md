@@ -7,7 +7,7 @@ This repository contains the configuration and setup for Apache Superset, a mode
 Superset uses two different types of databases:
 
 1. **Metadata Database**
-   - Purpose: Stores Superset's internal metadata
+   - Purpose: Stores Superset's internal metadata and configurations
    - Content:
      - User information and permissions
      - Dashboard configurations
@@ -17,7 +17,11 @@ Superset uses two different types of databases:
      - Cache keys
    - Default: SQLite (`superset.db` in project root)
    - Configuration: Set via `SQLALCHEMY_DATABASE_URI` in `superset_config.py`
-   - Note: For production, recommended to use PostgreSQL or MySQL
+   - Important Notes:
+     - Encryption key (`SUPERSET_SECRET_KEY`) must remain consistent
+     - Database credentials are encrypted using this key
+     - If key changes, you'll need to reset the database
+     - For production, recommended to use PostgreSQL or MySQL
 
 2. **Data Source Databases**
    - Purpose: Store actual data for visualization
@@ -28,10 +32,20 @@ Superset uses two different types of databases:
      - Oracle
      - Microsoft SQL Server
      - Apache Druid
+     - StarRocks
      - And many more
-   - Configuration: Added through Superset's UI (Data → Databases)
-   - Connection: Uses SQLAlchemy URI format
-   - Security: Credentials encrypted in metadata DB
+   - Configuration Methods:
+     - Through Superset's UI (Data → Databases)
+     - Via SQLAlchemy URI in configuration
+   - Connection Details:
+     - Uses SQLAlchemy URI format
+     - Credentials encrypted in metadata DB
+     - Supports SSH tunneling
+     - Can use connection pooling
+   - Special Configurations:
+     - StarRocks setup requires Docker container
+     - Some databases need additional drivers
+     - Can configure query timeouts per database
 
 ## Prerequisites
 
@@ -39,6 +53,7 @@ Superset uses two different types of databases:
 - Virtual environment
 - Redis (optional, for caching)
 - Node.js and npm
+- Docker (for StarRocks and other containerized databases)
 
 ## Installation Steps
 
@@ -88,37 +103,44 @@ superset load_examples
   - Query results cache
   - Thumbnail cache
 
-### Storage Locations
+### Database Configuration
 
-1. **Metadata Storage**:
-   - Default SQLite database (`superset.db`) in project root
-   - Contains user info, dashboards, saved queries, and database connections
+1. **Metadata Database Configuration**:
+```python
+# SQLite (default)
+SQLALCHEMY_DATABASE_URI = 'sqlite:///path/to/superset.db'
 
-2. **Visualization Storage**:
-   - Charts configuration in metadata DB
-   - Custom plugins in `superset-frontend/plugins/`
-   - Generated thumbnails in `/tmp/superset_thumbnails/`
+# PostgreSQL (recommended for production)
+SQLALCHEMY_DATABASE_URI = 'postgresql://user:password@localhost/superset'
 
-3. **Query Storage**:
-   - Saved queries in metadata DB
-   - Query results cache in DB/Redis
+# MySQL
+SQLALCHEMY_DATABASE_URI = 'mysql://user:password@localhost/superset'
 
-4. **Asset Storage**:
-   - Static assets in application directories
-   - Uploaded files in configured upload directory
+# Important security settings
+SUPERSET_SECRET_KEY = 'your-long-random-string'  # Must be consistent
+PREVENT_UNSAFE_DB_CONNECTIONS = True
+```
+
+2. **Data Source Database Example Configurations**:
+```python
+# PostgreSQL
+postgresql://user:password@localhost:5432/database
+
+# MySQL
+mysql://user:password@localhost:3306/database
+
+# StarRocks
+starrocks://user:password@localhost:9030/database
+
+# Additional database parameters
+?connect_timeout=10&pool_timeout=30
+```
 
 ### Storage Configuration
 
 Customize storage locations in `superset_config.py`:
 
-1. **Metadata Database**:
-```python
-SQLALCHEMY_DATABASE_URI = 'sqlite:///path/to/superset.db'
-# or
-SQLALCHEMY_DATABASE_URI = 'postgresql://user:password@localhost/superset'
-```
-
-2. **Cache Configuration**:
+1. **Cache Configuration**:
 ```python
 CACHE_CONFIG = {
     'CACHE_TYPE': 'FileSystemCache',
@@ -127,7 +149,7 @@ CACHE_CONFIG = {
 }
 ```
 
-3. **Thumbnail Configuration**:
+2. **Thumbnail Configuration**:
 ```python
 THUMBNAIL_CACHE_CONFIG = {
     'CACHE_TYPE': 'FileSystemCache',
@@ -135,7 +157,7 @@ THUMBNAIL_CACHE_CONFIG = {
 }
 ```
 
-4. **Upload Configuration**:
+3. **Upload Configuration**:
 ```python
 UPLOAD_FOLDER = '/path/to/uploads'
 IMG_UPLOAD_FOLDER = '/path/to/image/uploads'
@@ -170,6 +192,9 @@ superset run -h 0.0.0.0 -p 8088 --with-threads --reload --debugger
    - For metadata DB encryption issues:
      - Ensure `SUPERSET_SECRET_KEY` is consistent
      - May need to reset the database if key changes
+   - For StarRocks:
+     - Ensure Docker container is running
+     - Check container logs for connection issues
 
 2. Cache issues:
    - Ensure cache directories are writable
@@ -183,3 +208,4 @@ superset run -h 0.0.0.0 -p 8088 --with-threads --reload --debugger
 
 - [Apache Superset Documentation](https://superset.apache.org/docs/intro)
 - [Superset GitHub Repository](https://github.com/apache/superset)
+- [StarRocks Documentation](https://docs.starrocks.io/)
