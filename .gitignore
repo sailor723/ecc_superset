@@ -1,0 +1,62 @@
+# Python virtual environment
+venv/
+env/
+.env/
+.venv/
+
+# Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Logs
+*.log
+log/
+logs/
+
+# Temporary files
+/tmp/
+*.tmp
+.DS_Store
+.coverage
+htmlcov/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.iml
+
+# Local environment files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Superset specific files
+superset-frontend/
+superset_config_local.py
+.superset/
+superset_home/
+
+# Database files
+*.sqlite
+*.db
