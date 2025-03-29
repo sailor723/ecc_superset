@@ -85,7 +85,7 @@ FEATURE_FLAGS = {
     "ENABLE_EXPLORE_DRAG_AND_DROP": True,
     "ENABLE_DND_WITH_CLICK_UX": True,
     "ENABLE_ADVANCED_DATA_TYPES": True,
-    "SQLLAB_BACKEND_PERSISTENCE": True,
+    "SQLLAB_BACKEND_PERSISTENCE": False,
     "UPLOAD_EXTENSION": True,
     "ENABLE_TEMPLATE_REMOVAL": True,
     "DASHBOARD_RBAC": True,
@@ -93,8 +93,8 @@ FEATURE_FLAGS = {
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "ENABLE_TEMPLATE_PROCESSING": True,
     "DASHBOARD_FILTERS_EXPERIMENTAL": True,
-    "GLOBAL_ASYNC_QUERIES": True,
-    "ENABLE_ASYNC_QUERY_MANAGER": True,
+    "GLOBAL_ASYNC_QUERIES": False,
+    "ENABLE_ASYNC_QUERY_MANAGER": False,
     "ALERT_REPORTS_NOTIFICATION_DRY_RUN": True,
     "ENABLE_JAVASCRIPT_CONTROLS": True,
 }
@@ -113,10 +113,6 @@ SQLALCHEMY_TRACK_MODIFICATIONS = True
 ENABLE_JAVASCRIPT_CONTROLS = True
 ENABLE_TEMPLATE_PROCESSING = True
 
-# Additional database engines
-ADDITIONAL_ENGINES = True
-PREFERRED_DATABASES = ["postgresql", "mysql"]
-
 # Enable CORS
 ENABLE_CORS = True
 CORS_OPTIONS = {
@@ -130,53 +126,6 @@ CORS_OPTIONS = {
 UPLOAD_FOLDER = "/tmp/superset_uploads/"
 FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
 UPLOAD_CHUNK_SIZE = 4096
-
-# Database configurations
-DATABASES = {
-    'mysql': {
-        'allow_file_upload': True,
-        'allowed_extensions': {"csv", "xlsx", "xls", "parquet"},
-        'csv_extensions': {"csv"},
-        'excel_extensions': {"xlsx", "xls"},
-        'engine': 'mysql',
-        'port': 3306,
-        'allow_csv_upload': True,
-        'allow_ctas': True,
-        'allow_cvas': True,
-        'allow_dml': True,
-        'expose_in_sqllab': True,
-        'allow_multi_schema_metadata_fetch': True,
-        'allow_file_upload': True,
-        'extra': {
-            'ssl': False
-        }
-    }
-}
-
-# MySQL specific settings
-SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
-SQLALCHEMY_POOL_SIZE = 5
-SQLALCHEMY_POOL_TIMEOUT = 30
-SQLALCHEMY_POOL_RECYCLE = 3600
-SQLALCHEMY_MAX_OVERFLOW = 10
-
-# Enable SQL Lab
-SQLLAB_ENABLED = True
-SQLLAB_ASYNC_TIME_LIMIT_SEC = 300
-SQL_MAX_ROW = 100000
-SQL_QUERY_MUTATING_THRESHOLD_DURATION = 3600
-SQLLAB_TIMEOUT = 30
-SQLLAB_VALIDATION_TIMEOUT = 10
-
-# Security settings
-TALISMAN_ENABLED = False
-ENABLE_PROXY_FIX = True
-ENABLE_CORS = True
-
-# File upload settings
-UPLOAD_EXTENSION = True
-UPLOAD_FOLDER = "/tmp/superset_uploads/"
-IMG_UPLOAD_FOLDER = "/tmp/superset_uploads/"
 
 # Create upload directory if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -438,70 +387,166 @@ Make the script executable:
 chmod +x start_superset.sh
 ```
 
-## 7. Start Superset
+## 7. Scripts and Their Purposes
+
+This setup includes several Python and shell scripts to help manage Superset. Here's what each one does:
+
+### Quick Reference
+
+| Script | Type | Purpose | When to Use |
+|--------|------|---------|------------|
+| `start_superset.sh` | Shell | Start Superset and databases | Daily use to start the system |
+| `cleanup_superset.sh` | Shell | Kill stuck processes | When Superset won't start |
+| `fix_superset.py` | Python | Launcher for Superset | Used by start script (don't run directly) |
+| `fix_mysql_connection.py` | Python | Fix MySQL connection errors | When you see "Failed to start remote query" error |
+| `superset_config.py` | Python | Configuration file | Edit to change settings (restart required) |
+
+### Python Scripts
+
+1. **fix_superset.py**
+   - **Purpose**: Custom launcher for Superset that simplifies the start command
+   - **Usage**: Used by `start_superset.sh` to start the Superset server
+   - **When to use**: You don't need to run this directly - it's called by the start script
+   ```python
+   #!/usr/bin/env python
+   from superset.cli.main import superset
+   
+   if __name__ == "__main__":
+       superset()
+   ```
+
+2. **fix_mysql_connection.py**
+   - **Purpose**: Fixes MySQL connection parameters that cause errors
+   - **Usage**: Run when you see "Failed to start remote query on a worker" errors
+   - **When to use**: Only when you encounter MySQL connection issues
+   - **How it works**: Removes problematic pooling parameters from MySQL connection
+   ```bash
+   ./fix_mysql_connection.py
+   ```
+
+3. **superset_config.py**
+   - **Purpose**: Main configuration file for Superset
+   - **Usage**: Automatically loaded when Superset starts
+   - **When to use**: Edit when you need to change configuration settings
+   - **Key settings**: Security settings, feature flags, upload parameters
+
+### Shell Scripts
+
+1. **start_superset.sh**
+   - **Purpose**: Main script for starting the Superset environment
+   - **Usage**: Run this to start Superset after setup
+   - **When to use**: Whenever you want to start Superset
+   ```bash
+   ./start_superset.sh
+   ```
+
+2. **cleanup_superset.sh**
+   - **Purpose**: Cleans up stuck processes and temporary files
+   - **Usage**: Run when Superset gets stuck or you encounter issues
+   - **When to use**: When Superset won't start or is behaving strangely
+   ```bash
+   ./cleanup_superset.sh
+   ```
+
+## 8. Start Superset
 
 Run the startup script:
 ```bash
 ./start_superset.sh
 ```
 
-## 8. Access Superset
+## 9. Access Superset
 
 - Access Superset at http://localhost:8088
 - Login with username `admin` and password `admin`
 
-## 9. Usage Guide
+## 10. Configure MySQL in the UI
 
-### Upload Files to MySQL
-1. Go to **Data → Datasets → + Dataset**
-2. Select MySQL as your database
-3. Choose "Upload a file" and select your CSV or Excel file
-4. Configure your table settings and click "Save"
+After starting Superset, you'll need to configure MySQL:
 
-### Create Queries in SQL Lab
-1. Go to **SQL Lab → SQL Editor**
-2. Select MySQL from the database dropdown
-3. Choose "superset" schema
-4. Write SQL queries to explore your data
-5. Use the "Run" button to execute queries
+1. Log in to Superset
+2. Go to **Data → Databases → + Database**
+3. Select "MySQL" as the database type
+4. Enter the connection details:
+   - Host: The MySQL container IP (shown in terminal when starting Superset)
+   - Port: 3306
+   - Database: superset
+   - Username: superset
+   - Password: superset
+5. **Important**: Under "Advanced" → "SQL Lab":
+   - Enable "Expose in SQL Lab"
+   - Enable "Allow CREATE TABLE AS"
+   - Enable "Allow CREATE VIEW AS" 
+   - Enable "Allow DML"
+   - Enable "Allow file uploads to database"
+6. **Important**: Under "Advanced" → "Engine Parameters" → "connect_args":
+   - Add only `{"charset": "utf8mb4"}`
+   - Do NOT add pooling parameters (pool_size, pool_timeout, etc.)
 
-### Create Visualizations
-1. Create a query in SQL Lab
-2. Click "Explore" to visualize the results
-3. Choose a visualization type
-4. Save your visualization as a chart
+## 11. Troubleshooting
 
-### Create Dashboards
-1. Go to **Dashboards → + Dashboard**
-2. Add charts to your dashboard
-3. Arrange and resize charts as needed
-4. Save your dashboard
+### "Failed to start remote query on a worker" Error
 
-## 10. Troubleshooting
+If you encounter this error, it's typically due to incorrect MySQL connection parameters. Specifically, SQLAlchemy has compatibility issues when certain pooling parameters (like `pool_size` and `pool_timeout`) are used with the MySQL dialect.
+
+The error looks like this:
+```
+TypeError: Invalid argument(s) 'pool_size','pool_timeout' sent to create_engine(), using configuration MySQLDialect_mysqldb/NullPool/Engine.
+```
+
+To fix it:
+
+1. Stop Superset
+2. Run the `fix_mysql_connection.py` script to correct connection parameters:
+   ```bash
+   ./fix_mysql_connection.py
+   ```
+   
+   This script:
+   - Connects to the PostgreSQL metadata database 
+   - Finds the MySQL connection configuration
+   - Removes problematic pooling parameters (`pool_size`, `pool_timeout`, etc.)
+   - Updates the connection to use only compatible parameters
+
+3. Restart Superset with:
+   ```bash
+   ./start_superset.sh
+   ```
 
 ### MySQL Connection Issues
+
 If you have trouble connecting to MySQL, make sure:
 1. The container is running (`docker ps | grep superset-mysql`)
 2. The IP address is correct (check with `docker inspect superset-mysql`)
 3. The MySQL user has the right permissions
-4. When connecting in Superset, use the container's IP address (usually 172.17.0.2 or similar)
+4. When connecting in Superset UI, only use simple connection parameters:
+   ```json
+   {
+     "connect_args": {
+       "charset": "utf8mb4"
+     }
+   }
+   ```
 
 ### File Upload Issues
+
 If file uploads aren't working:
-1. Run the `update_db.py` script to ensure database settings are correct
-2. Ensure the `ALLOWED_EXTENSIONS` in `superset_config.py` is using set syntax: `{"csv", "xlsx"}`
-3. Check that the upload directory exists and has proper permissions
-4. Verify the MySQL user has appropriate privileges with: `GRANT ALL PRIVILEGES ON *.* TO 'superset'@'%' WITH GRANT OPTION;`
+1. Ensure the `ALLOWED_EXTENSIONS` in `superset_config.py` is using set syntax: `{"csv", "xlsx"}`
+2. Check that the upload directory exists and has proper permissions
+3. Verify the MySQL user has appropriate privileges with: `GRANT ALL PRIVILEGES ON *.* TO 'superset'@'%' WITH GRANT OPTION;`
 
-### Starting Containers
-The startup script will automatically handle container management, but if you need to manually manage containers:
-```bash
-# List containers
-docker ps -a
+### Process Management
 
-# Start containers individually
-docker start superset-postgres superset-mysql
+If Superset gets stuck or won't start:
 
-# Get container IPs
-docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' superset-mysql
-``` 
+1. Use the provided cleanup script:
+   ```bash
+   ./cleanup_superset.sh
+   ```
+   This will kill all Superset processes and clean temporary files.
+
+2. Or manually kill processes:
+   ```bash
+   pkill -f "python fix_superset.py"
+   pkill -f "superset"
+   ``` 
